@@ -62,6 +62,7 @@
       <div class="fit-filters">
         <div class="seg" id="fit-langs" role="group" aria-label="Language regions"></div>
         <label class="fit-pick" for="fit-canton"><span>Canton</span><select id="fit-canton"></select></label>
+        <label class="fit-pick" for="fit-min"><span>Minimum score</span><select id="fit-min"></select></label>
       </div>
       <div class="fit-key" id="fit-key"></div>
       <div class="fit-tools">
@@ -77,8 +78,9 @@
       </div>
       <div class="chart fit-map" id="fit-map"></div>
       <p class="note" id="fit-map-note"></p>
-      <h3 class="fit-grp" id="fit-h-top">Best fits</h3>
-      <ol class="fit-top" id="fit-top" aria-labelledby="fit-h-top"></ol>
+      <div class="fit-tophead"><h3 class="fit-grp" id="fit-h-top">Best fits</h3>
+        <label class="fit-topn" for="fit-topn"><span>Show the top</span><input id="fit-topn" type="number" inputmode="numeric" min="1" max="200" step="1" value="10"></label></div>
+      <div class="fit-topbox" id="fit-topbox"><ol class="fit-top" id="fit-top" aria-labelledby="fit-h-top"></ol></div>
     </div>
   </section>
 </div>
@@ -190,7 +192,9 @@
 
   // ---------- state: the answers ----------
   // a[i]: -2 .. 2 (0 = doesn't matter), star[i], the language regions shown, the canton (0 = all), the household
-  const S = { a: [], star: [], langs: new Set([1, 2, 3, 4]), canton: 0, household: 2, step: -1, started: false, pinned: null };
+  const S = { a: [], star: [], langs: new Set([1, 2, 3, 4]), canton: 0, household: 2, min: 0, top: 10, step: -1, started: false, pinned: null };
+  const TOPMAX = 200;   // the longest list of best fits
+  const MINS = [0, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95];   // the minimum score: 0 = none
   const CODES = 'abcde';      // the address: one letter per question, -2 .. 2; upper case = starred
   function writeHash() {
     if (!F.length) return;
@@ -199,6 +203,8 @@
     if (S.langs.size < 4) parts.push('l=' + [...S.langs].sort().join(''));
     if (S.canton) parts.push('k=' + ABBR[S.canton]);
     if (S.household !== 2) parts.push('h=' + S.household);
+    if (S.min) parts.push('m=' + S.min);
+    if (S.top !== 10) parts.push('n=' + S.top);
     const h = '#' + parts.join('&');
     if (location.hash !== h) try { history.replaceState(null, '', h); } catch (e) { /* a sandboxed frame may refuse; the page works without it */ }
   }
@@ -214,6 +220,10 @@
     S.canton = k > 0 ? k : 0;
     const hh = Number(p.get('h'));
     if ([0, 1, 2, 3].includes(hh) && p.get('h') !== null) S.household = hh;
+    const m = Number(p.get('m'));
+    if (MINS.includes(m)) S.min = m;
+    const n = Number(p.get('n'));
+    if (Number.isInteger(n) && n >= 1 && n <= TOPMAX) S.top = n;
     return true;
   }
   const answered = () => S.a.some((v) => v !== 0);
@@ -230,10 +240,9 @@
     const f = F[i];
     if (UNIT[f.code]) return UNIT[f.code](v);
     if (DIST.has(f.code)) return v < 1000 ? Math.round(v / 10) * 10 + ' m' : (v / 1000).toFixed(1) + ' km';
-    if (f.code === 'sunshine') return sunFmt(v);
+    if (f.code === 'sunshine') return v.toFixed(0) + '%';
     return v.toFixed(f.decimals) + '%';
   }
-  let sunFmt = (v) => v.toFixed(0);
   const valueOf = (c, i) => (i === TAX ? c.t[S.household] : c.v[i]);
   const pctOf = (ci, i) => (i === TAX ? TAXPCT[S.household][ci] : PCT[i][ci]);
 
@@ -267,6 +276,22 @@
     return order;
   }
 
+  // ---------- what an answer means (the "i" on each question) ----------
+  function quantile(i, q) {
+    const vals = C.map((c) => valueOf(c, i)).filter((v) => v != null && Number.isFinite(v)).sort((a, b) => a - b);
+    return vals.length ? d3.quantileSorted(vals, q) : null;
+  }
+  function infoHtml(i) {
+    const f = F[i];
+    const p10 = quantile(i, 0.1), p50 = quantile(i, 0.5), p90 = quantile(i, 0.9);
+    const hh = i === TAX ? ' (' + HOUSEHOLDS[S.household][1] + ')' : '';
+    return '<p><b>' + esc(f.less_word) + '</b> puts the communes with the lowest values first, <b>' + esc(f.more_word) + '</b> those with the highest. ' +
+      'The value: ' + esc(f.definition.replace(/\.$/, '')) + hh + '.</p>' +
+      '<p>How the communes compare: a tenth are below ' + fmt(i, p10) + ', half below ' + fmt(i, p50) + ', and a tenth above ' + fmt(i, p90) + '.</p>' +
+      '<p>There is no fixed limit: the score uses each commune&rsquo;s rank among all ' + num(C.length) + ' communes. &ldquo;Matters a lot&rdquo; counts twice as much as &ldquo;a little&rdquo;; &ldquo;Doesn&rsquo;t matter&rdquo; leaves the question out.</p>';
+  }
+  const INFO_BTN = '<button type="button" class="fit-info" aria-expanded="false" aria-controls="fit-info-pop" aria-label="What the answers mean">i</button>';
+
   // ---------- the questions ----------
   const STEPS = () => 1 + F.length;        // step 0: language regions; then one per feature
   function optLabel(f, v) {
@@ -297,7 +322,8 @@
           name + '</label>').join('') + '</div>' + nav;
       } else {
         const i = S.step - 1, f = F[i];
-        el.innerHTML = bar + '<p class="eyebrow">' + esc(f.grp) + '</p><h2 id="fit-qh">' + esc(f.label) + '</h2><p class="fit-q__text">' + esc(f.question) + '</p>' +
+        el.innerHTML = bar + '<p class="eyebrow">' + esc(f.grp) + '</p><h2 id="fit-qh">' + esc(f.label) + '</h2><p class="fit-q__text">' + esc(f.question) + ' ' + INFO_BTN + '</p>' +
+          '<div class="fit-info__pop" id="fit-info-pop" role="tooltip" hidden>' + infoHtml(i) + '</div>' +
           (i === TAX ? '<div class="fit-household"><label class="fit-pick" for="fit-hh"><span>Household</span><select id="fit-hh">' +
             HOUSEHOLDS.map(([h], k) => '<option value="' + k + '"' + (k === S.household ? ' selected' : '') + '>' + h + '</option>').join('') + '</select></label></div>' : '') +
           '<div class="fit-opts" role="group" aria-labelledby="fit-qh">' + [-2, -1, 0, 1, 2].map((v) => '<button type="button" class="fit-opt" data-v="' + v + '" aria-pressed="' +
@@ -320,8 +346,28 @@
   }
   function bindQuestions() {
     const el = $('#q');
+    // the "i": shows on hover and on keyboard focus, a click or tap keeps it open until the next click or Escape
+    let kept = false;
+    const pop = () => el.querySelector('.fit-info__pop'), btn = () => el.querySelector('.fit-info');
+    const openInfo = (open) => {
+      const p = pop(), b = btn();
+      if (!p || !b) return;
+      p.hidden = !open;
+      b.setAttribute('aria-expanded', String(open));
+      if (!open) return;
+      const box = el.getBoundingClientRect(), r = b.getBoundingClientRect();
+      p.style.top = Math.round(r.bottom - box.top + 8) + 'px';
+      p.style.left = Math.round(Math.max(0, Math.min(r.left - box.left - 16, box.width - p.offsetWidth))) + 'px';
+    };
+    el.addEventListener('pointerover', (ev) => { if (ev.pointerType === 'mouse' && ev.target.closest('.fit-info')) openInfo(true); });
+    el.addEventListener('pointerout', (ev) => { if (ev.pointerType === 'mouse' && ev.target.closest('.fit-info') && !kept) openInfo(false); });
+    el.addEventListener('focusin', (ev) => { if (ev.target.closest('.fit-info')) openInfo(true); });
+    el.addEventListener('focusout', (ev) => { if (ev.target.closest('.fit-info') && !kept) openInfo(false); });
+    el.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && pop() && !pop().hidden) { kept = false; openInfo(false); } });
     el.addEventListener('click', (ev) => {
       const b = ev.target.closest('button');
+      if (b && b.classList.contains('fit-info')) { kept = !kept || pop().hidden; openInfo(kept); return; }
+      if (kept && !ev.target.closest('.fit-info__pop')) { kept = false; openInfo(false); }
       if (!b) return;
       if (b.dataset.go != null) { go(b.dataset.go); return; }
       if (b.dataset.v != null) {
@@ -341,7 +387,11 @@
         S.langs = new Set(on);
         refresh();
       }
-      if (ev.target.id === 'fit-hh') { S.household = Number(ev.target.value); refresh(); }
+      if (ev.target.id === 'fit-hh') {
+        S.household = Number(ev.target.value); refresh();
+        const p = el.querySelector('.fit-info__pop');
+        if (p && S.step - 1 === TAX) p.innerHTML = infoHtml(TAX);
+      }
     });
   }
 
@@ -411,7 +461,9 @@
     const head = '<p class="tt__meta">' + esc(CANTONS[ABBR.indexOf(c.k)] || c.k) + ' · ' + (LANGS.find(([l]) => l === c.l) || [0, ''])[1] + '-speaking · ' + num(c.r) + ' residents</p>' +
       '<p class="tt__title">' + esc(c.n) + '</p>';
     if (!shown(c)) return head + '<p class="tt__note">Outside the regions and cantons you chose.</p>';
-    const on = F.map((_, i) => i).filter((i) => weight(i)).sort((a, b) => weight(b) - weight(a) || a - b);
+    // most important answers first; among equally weighted ones, where this commune fits best first
+    const fitOf = (i) => { const p = pctOf(ci, i); return p == null ? -1 : S.a[i] > 0 ? p : 1 - p; };
+    const on = F.map((_, i) => i).filter((i) => weight(i)).sort((a, b) => weight(b) - weight(a) || fitOf(b) - fitOf(a) || a - b);
     const score = SC[ci] == null ? '<p class="tt__note">No score: values are missing for half or more of what you weighted.</p>'
       : '<div class="tt__score"><b>' + Math.round(SC[ci]) + '</b><span>of 100 · ' + num(RANK.get(ci)) + ' of ' + num(RANK.size) + ' communes shown</span></div>';
     const list = (on.length ? on : [0, 1, 5, 12, 15, 16]).slice(0, 12);
@@ -421,7 +473,7 @@
       const dot = fit == null ? '' : '<i class="fit-s' + Math.min(9, Math.floor(fit * 10)) + '"></i>';
       const v = valueOf(c, i);   // education of the smallest communes: published as a 20-point class only
       const shownValue = i === EDU && c.ec && v != null ? Math.max(0, Math.round(v - 10)) + '–' + Math.min(100, Math.round(v + 10)) + '%' : fmt(i, v);
-      return '<div><dt>' + dot + esc(F[i].label) + (S.star[i] ? ' ★' : '') + '</dt><dd>' + shownValue + '</dd></div>';
+      return '<div><dt>' + dot + esc(F[i].label) + (S.star[i] ? '<span class="tt__star" aria-label="starred">★</span>' : '') + '</dt><dd>' + shownValue + '</dd></div>';
     }).join('');
     const notes = [];
     if (list.includes(EDU) && c.ec) notes.push('Higher education: fewer than 100 residents aged 25 to 64, so the FSO publishes only a range; the score uses its middle.');
@@ -447,6 +499,16 @@
     g.append('path').attr('class', 'fit-outline').attr('d', path(GEO.outline));
     const hl = g.append('path').attr('class', 'focus-ring');
     const pin = g.append('path').attr('class', 'fit-pin');
+    // line widths in map units, so that they grow more slowly than the zoom: commune borders, canton lines, the border of
+    // Switzerland, and the outline of the hovered or kept commune (red), which stays a little wider than all of them
+    const outline = (k) => {
+      const node = svg.node();
+      node.style.setProperty('--fit-bw', Math.max(0.3 / k, 0.15) + 'px');
+      node.style.setProperty('--fit-cw', Math.max(0.7 / k, 0.22) + 'px');
+      node.style.setProperty('--fit-ow', Math.max(0.9 / k, 0.28) + 'px');
+      node.style.setProperty('--fit-pw', Math.max(1.5 / k, 0.3) + 'px');
+    };
+    outline(1);
     M.shapes = shapes;
     const show = (ev, f) => {
       const ci = BYID.get(f.id);
@@ -463,7 +525,7 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) { pinned = null; hide(); pin.attr('d', null); } });
     const zoom = d3.zoom().scaleExtent([1, 32]).translateExtent([[0, 0], [W, H]])
       .filter((ev) => (ev.type === 'wheel' ? ev.ctrlKey || ev.metaKey : ev.type === 'touchstart' ? ev.touches.length > 1 : !ev.button))
-      .on('zoom', (ev) => { g.attr('transform', ev.transform); tip.hide(); });
+      .on('zoom', (ev) => { g.attr('transform', ev.transform); outline(ev.transform.k); tip.hide(); });
     svg.call(zoom).on('dblclick.zoom', null);
     const zoomTo = (f) => {
       const [[x0, y0], [x1, y1]] = path.bounds(f);
@@ -485,7 +547,9 @@
     M.shapes.attr('class', (f) => {
       const ci = BYID.get(f.id);
       if (ci == null) return 'fit-town fit-sx';
-      return 'fit-town ' + (shown(C[ci]) ? scoreClass(ci) : 'fit-sx is-out');
+      if (!shown(C[ci])) return 'fit-town fit-sx is-out';
+      if (S.min && SC[ci] != null && SC[ci] < S.min) return 'fit-town fit-sx is-below';
+      return 'fit-town ' + scoreClass(ci);
     });
     const el = $('#map');
     el.querySelectorAll('.fit-map__msg').forEach((n) => n.remove());
@@ -501,17 +565,21 @@
   function renderKey() {
     const ramp = '<span class="fit-ramp"><span class="fit-ramp__end">Fits less</span>' + d3.range(10).map((k) => '<i class="fit-s' + k + '"></i>').join('') +
       '<span class="fit-ramp__end">Fits better</span></span>';
-    $('#key').innerHTML = ramp + '<span><i class="fit-sw fit-sw--out"></i>Outside your choice</span><span><i class="fit-sw fit-sw--none"></i>No score</span>';
+    $('#key').innerHTML = ramp + (S.min ? '<span><i class="fit-sw fit-sw--below"></i>Below ' + S.min + '</span>' : '') +
+      '<span><i class="fit-sw fit-sw--out"></i>Outside your choice</span><span><i class="fit-sw fit-sw--none"></i>No score</span>';
   }
   let TOP = [];
   function renderTop(order) {
-    TOP = order.slice(0, 10);
+    const reach = S.min ? order.filter((ci) => SC[ci] >= S.min) : order;
+    TOP = reach.slice(0, S.top);
     $('#top').innerHTML = TOP.length ? TOP.map((ci) => '<li><button type="button" data-id="' + C[ci].id + '"><span class="fit-top__name">' + esc(C[ci].n) + '<small>' + C[ci].k +
-      '</small></span><span class="fit-top__score">' + Math.round(SC[ci]) + '</span></button></li>').join('') : '<li class="note">No scores yet.</li>';
+      '</small></span><span class="fit-top__score">' + Math.round(SC[ci]) + '</span></button></li>').join('')
+      : '<li class="note">' + (S.min && order.length ? 'No commune reaches ' + S.min + '. Lower the minimum score to see the best fits.' : 'No scores yet.') + '</li>';
     const sel = [...S.langs].length < 4 || S.canton ? ' among the communes you chose' : '';
     const w = F.map((_, i) => i).filter((i) => weight(i));
-    $('#map-text').textContent = TOP.length ? 'Best fit' + sel + ': ' + C[TOP[0]].n + ' (' + C[TOP[0]].k + '), with ' + Math.round(SC[TOP[0]]) + ' of 100, from ' +
-      w.length + (w.length === 1 ? ' answer.' : ' answers.') : '';
+    $('#map-text').textContent = (TOP.length ? 'Best fit' + sel + ': ' + C[TOP[0]].n + ' (' + C[TOP[0]].k + '), with ' + Math.round(SC[TOP[0]]) + ' of 100, from ' +
+      w.length + (w.length === 1 ? ' answer.' : ' answers.') : '') +
+      (S.min && order.length ? ' ' + (reach.length === 1 ? 'One commune scores ' : num(reach.length) + ' communes score ') + S.min + ' or more.' : '');
     $('#map-note').textContent = num(NSHOWN) + ' of ' + num(C.length) + ' communes in your choice of regions and cantons. Zoom with the buttons, by pinching, or with Ctrl or ⌘ and the scroll wheel; tap or click a commune to keep its values.';
   }
 
@@ -527,10 +595,13 @@
   function refresh() {
     const order = rescore();
     syncAnswers();
+    renderKey();
     renderTop(order);
     paintMap();
     root.querySelectorAll('#fit-langs button').forEach((b) => b.setAttribute('aria-pressed', String(S.langs.has(Number(b.dataset.l)))));
     $('#canton').value = String(S.canton);
+    $('#min').value = String(S.min);
+    if (document.activeElement !== $('#topn')) $('#topn').value = String(S.top);
     writeHash();
   }
   function bindMap() {
@@ -546,6 +617,18 @@
     $('#canton').innerHTML = '<option value="0">All cantons</option>' + CANTONS.map((n, k) => (k ? [n, k] : null)).filter(Boolean)
       .sort((a, b) => a[0].localeCompare(b[0], 'de')).map(([n, k]) => '<option value="' + k + '">' + n + '</option>').join('');
     $('#canton').addEventListener('change', (ev) => { S.canton = Number(ev.target.value); refresh(); });
+    $('#min').innerHTML = MINS.map((m) => '<option value="' + m + '">' + (m ? m + ' or more' : 'None') + '</option>').join('');
+    $('#min').addEventListener('change', (ev) => { S.min = Number(ev.target.value); refresh(); });
+    // how many best fits: any whole number from 1 to 200; the list follows as you type, a wrong entry falls back on leaving
+    const topn = $('#topn');
+    const setTop = (final) => {
+      const n = Math.round(Number(topn.value));
+      if (Number.isFinite(n) && n >= 1) { S.top = Math.min(TOPMAX, n); refresh(); }
+      if (final) topn.value = String(S.top);
+    };
+    topn.addEventListener('input', () => setTop(false));
+    topn.addEventListener('change', () => setTop(true));
+    topn.addEventListener('blur', () => setTop(true));
     const names = new Map(C.map((c) => [c.n, c.id]));
     $('#names').innerHTML = [...names.keys()].sort((a, b) => a.localeCompare(b, 'de')).map((n) => '<option value="' + esc(n) + '">').join('');
     const find = $('#search');
@@ -557,9 +640,27 @@
     $('#zin').addEventListener('click', () => M.view && M.view.svg.transition().duration(300).call(M.view.zoom.scaleBy, 2));
     $('#zout').addEventListener('click', () => M.view && M.view.svg.transition().duration(300).call(M.view.zoom.scaleBy, 0.5));
     $('#zreset').addEventListener('click', reset);
+    const box = $('#topbox'), ttop = tooltip(box);
+    const showTop = (b) => {
+      const ci = BYID.get(Number(b.dataset.id));
+      if (ci == null) return;
+      ttop.show(tipHtml(ci), 0, 0);
+      const t = box.querySelector('.tooltip'), r = b.getBoundingClientRect(), bx = box.getBoundingClientRect();
+      const name = b.querySelector('.fit-top__name').getBoundingClientRect();
+      const left = Math.min(name.right - bx.left + 24, bx.width - t.offsetWidth);
+      const top = Math.max(0, Math.min(r.top - bx.top + r.height / 2 - t.offsetHeight / 2, box.offsetHeight - t.offsetHeight));
+      t.style.left = Math.max(0, left) + 'px';
+      t.style.top = top + 'px';
+    };
+    $('#top').addEventListener('pointerover', (ev) => { const b = ev.target.closest('button'); if (b && ev.pointerType === 'mouse') showTop(b); });
+    box.addEventListener('pointerleave', () => ttop.hide());
+    // keyboard focus only: a tap focuses the button too, and then zooms the map instead
+    $('#top').addEventListener('focusin', (ev) => { const b = ev.target.closest('button'); if (b && b.matches(':focus-visible')) showTop(b); });
+    $('#top').addEventListener('focusout', () => ttop.hide());
     $('#top').addEventListener('click', (ev) => {
       const b = ev.target.closest('button');
       if (!b) return;
+      ttop.hide();
       $('#map').scrollIntoView({ behavior: 'smooth', block: 'center' });
       zoomToId(Number(b.dataset.id));
     });
@@ -575,6 +676,7 @@
       'For each answer, every commune is ranked on that feature, from the lowest value (0) to the highest (1); a commune in the middle of all communes gets 0.5. If you want fewer or less of something, the ranking is turned round. The score is the average of these ranks over your answers, weighted: &ldquo;a little&rdquo; counts once, &ldquo;matters a lot&rdquo; twice, and a star doubles either. It is shown from 0 to 100.',
       'So the score compares communes with each other, not with what you wished for: 100 would mean a commune ranks first on every one of your answers, and a commune in the middle on all of them gets 50. With a single answer, the score is the commune&rsquo;s rank on that one feature.',
       'The map shows the scores in ten shades, each holding a tenth of the communes shown (communes with the same score share a shade). So the map always runs through all ten shades, whether your answers leave a few communes clearly ahead or many close together; the score in the tooltip tells which.',
+      'A minimum score leaves the communes below it pale on the map and out of the best fits; their scores stay in the tooltip. The list of best fits shows the top 10 unless you ask for more (up to 200).',
       'Every commune counts once, whatever its size. A commune with no value for half or more of what you weighted gets no score; the very smallest communes can have extreme values because a few people decide them.',
       'Values describe a commune as a whole. Distances, elevation, sunshine, noise and public transport are averages over the commune&rsquo;s residents: each inhabited hectare counts with the people who live there. They say nothing about a particular street, and nothing about any one person.',
       'Communes are today&rsquo;s (' + esc(SUMMARY.boundaries_state || '') + '). Figures from earlier commune states are added up onto today&rsquo;s communes. Tax burdens come from 2018, the latest year the Federal Tax Administration published for every commune; communes merged since then get the average of the communes they were made of, weighted by residents.',
@@ -605,8 +707,6 @@
       C.forEach((c, ci) => BYID.set(c.id, ci));
       F.forEach((_, i) => PCT.push(ranks(C.map((c) => c.v[i]))));
       [0, 1, 2, 3].forEach((h) => TAXPCT.push(ranks(C.map((c) => c.t[h]))));
-      const sun = SOURCES.find((s) => s.source === 'sun');
-      if (sun && /%/.test(sun.title + sun.used_for)) sunFmt = (v) => v.toFixed(0) + '%';
       const reader = topoReader(topo), o = topo.objects;
       GEO = { communes: reader.features(o.communes), lakes: reader.features(o.lakes),
         cantonLines: reader.mesh(o.communes, (a, b) => a !== b && a.properties.kt !== b.properties.kt),

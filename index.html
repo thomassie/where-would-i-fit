@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Where Would I Fit?</title>
 <link rel="canonical" href="https://thomassie.me/projects/where-would-i-fit/">
-<meta name="description" content="Answer up to 21 questions about what matters to you, and every commune in Switzerland gets a score for how well it fits, from official statistics. Swiss Democracy Lab.">
+<meta name="description" content="Where would you fit in Switzerland? Answer up to 21 questions, from density and sunshine to schools, taxes and politics, and see every commune scored on a map.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Where Would I Fit?">
 <meta property="og:description" content="Answer what matters to you, and every Swiss commune gets a score for how well it fits. From official statistics.">
@@ -26,7 +26,11 @@ body { margin: 0; }
 </head>
 <body>
 <main>
-  <div id="commune-finder" data-layout="standalone"></div>
+  <!-- the summary is for readers without JavaScript and for search engines; the script replaces it -->
+  <div id="commune-finder" data-layout="standalone">
+    <h1>Where Would I Fit?</h1>
+    <p>Where Would I Fit? is an interactive map for anyone deciding where to live in Switzerland. Answer up to 21 questions about what matters to you: how densely populated a place is, its elevation, sunshine and road noise, the travel time by public transport to Zurich, Geneva, Basel, Bern, Lausanne or Lugano, the distance to schools, family doctors and shops, the people who live there, income and income tax, how the commune votes, and how many flats stand empty or are second homes. Every commune (municipality) in Switzerland then gets a score for how well it fits your answers, shown on a map and as a list of the best fits. All figures come from official statistics: the Federal Statistical Office, swisstopo, the Federal Office for the Environment, MeteoSwiss, the Federal Office for Spatial Development and the Federal Tax Administration. Part of the Swiss Democracy Lab.</p>
+  </div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="fit.js"></script>

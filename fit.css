@@ -238,6 +238,7 @@
 .fit .fit-sw { display: inline-block; width: 12px; height: 12px; flex: none; }
 .fit .fit-sw--out { background: repeating-linear-gradient(45deg, var(--paper) 0 2.5px, color-mix(in srgb, var(--muted) 55%, var(--paper)) 2.5px 3.7px); box-shadow: inset 0 0 0 1px var(--rule); }
 .fit .fit-sw--none { background: color-mix(in srgb, var(--rule) 70%, var(--paper)); }
+.fit .fit-sw--below { background: color-mix(in srgb, var(--rule) 22%, var(--paper)); box-shadow: inset 0 0 0 1px var(--rule); }
 
 /* Buttons that act (start, next, back): text on the rule, like the switches; the main one in ink. */
 .fit .fit-act { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.25rem; }
@@ -254,7 +255,18 @@
 .fit .fit-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* ---------- The questions: one at a time ---------- */
-.fit .fit-q { display: grid; gap: 1.1rem; align-content: start; min-height: 22rem; }
+.fit .fit-q { display: grid; gap: 1.1rem; align-content: start; min-height: 22rem; position: relative; }
+/* the "i": what the answers mean, on hover, focus or tap */
+.fit .fit-info { font: inherit; font-family: var(--font-support); font-size: 0.75rem; font-weight: 500; line-height: 1; color: var(--muted);
+  width: 24px; height: 24px; padding: 0; margin: 0 0 0 0.25rem; border: 1px solid currentColor; border-radius: 50%; background: var(--paper);
+  display: inline-grid; place-items: center; vertical-align: 0.15em; cursor: help; -webkit-tap-highlight-color: transparent; }
+.fit .fit-info:hover, .fit .fit-info[aria-expanded="true"] { color: var(--ink); }
+.fit .fit-info:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fit .fit-info__pop { position: absolute; z-index: 6; width: min(30rem, 100%); box-sizing: border-box; padding: 0.75rem 0.9rem;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 6px 24px color-mix(in srgb, var(--ink) 14%, transparent);
+  font-family: var(--font-support); font-size: 0.8125rem; line-height: 1.5; display: grid; gap: 0.45rem; }
+.fit .fit-info__pop p { margin: 0; }
+.fit .fit-info__pop b { font-weight: 500; }
 .fit .fit-q:focus { outline: none; }
 .fit .fit-progress { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
 .fit .fit-progress__bar { flex: 1 1 auto; height: 2px; background: var(--rule); position: relative; max-width: 22rem; }
@@ -321,15 +333,20 @@
   color: var(--muted); -webkit-tap-highlight-color: transparent; }
 .fit .fit-star svg { width: 20px; height: 20px; }
 .fit .fit-star path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
-.fit .fit-star[aria-pressed="true"] { color: var(--red); }
-.fit .fit-star[aria-pressed="true"] path { fill: var(--red); }
+/* a star counts double: filled in the yellow, with a darker rim so it holds on white (yellow is a fill colour only) */
+.fit .fit-star[aria-pressed="true"] { color: color-mix(in oklab, var(--yellow) 70%, var(--ink)); }
+.fit .fit-star[aria-pressed="true"] path { fill: var(--yellow); }
 .fit .fit-star:hover { color: var(--ink); }
+.fit .fit-star[aria-pressed="true"]:hover { color: color-mix(in oklab, var(--yellow) 55%, var(--ink)); }
+/* on one line with the slider's track (16 px below the slider's top; the star's centre is 22 px below its top) */
+.fit .fit-row > .fit-slider, .fit .fit-row > .fit-star { align-self: start; }
+.fit .fit-row > .fit-star { margin-top: -6px; }
 .fit .fit-star:focus-visible { outline: 2px solid var(--link); outline-offset: -4px; }
 .fit .fit-star[disabled] { opacity: 0.35; cursor: default; }
 @container fit (max-width: 520px) {
   .fit .fit-row { grid-template-columns: minmax(0, 1fr) 44px; }
   .fit .fit-row__label { grid-column: 1 / 2; }
-  .fit .fit-row .fit-star { grid-column: 2; grid-row: 1; }
+  .fit .fit-row .fit-star { grid-column: 2; grid-row: 1; align-self: center; margin-top: 0; }
   .fit .fit-row .fit-slider { grid-column: 1 / -1; }
 }
 
@@ -369,13 +386,14 @@
 }
 .fit .fit-map svg { touch-action: pan-y; cursor: default; overflow: hidden; display: block; }
 .fit .fit-map svg path { fill-rule: evenodd; }
-.fit .fit-town { fill: var(--c); stroke: var(--paper); stroke-width: 0.3px; stroke-linejoin: round; }
+.fit .fit-town { fill: var(--c); stroke: var(--paper); stroke-width: var(--fit-bw, 0.3px); stroke-linejoin: round; }
 .fit .fit-town.is-out { fill: url(#fit-hatch); }
+.fit .fit-town.is-below { fill: color-mix(in srgb, var(--rule) 22%, var(--paper)); }
 .fit .fit-lake { fill: color-mix(in srgb, var(--blue) 14%, var(--paper)); stroke: none; pointer-events: none; }
-.fit .fit-cantonlines { fill: none; stroke: var(--ink); stroke-width: 0.7px; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
-.fit .fit-outline { fill: none; stroke: var(--ink); stroke-width: 0.9px; stroke-opacity: 0.8; stroke-linejoin: round; pointer-events: none; }
-.fit .fit-map .focus-ring { stroke-width: 1.75px; stroke-linejoin: round; }
-.fit .fit-map .fit-pin { fill: none; stroke: var(--red); stroke-width: 2px; stroke-linejoin: round; pointer-events: none; }
+.fit .fit-cantonlines { fill: none; stroke: var(--ink); stroke-width: var(--fit-cw, 0.7px); stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
+.fit .fit-outline { fill: none; stroke: var(--ink); stroke-width: var(--fit-ow, 0.9px); stroke-opacity: 0.8; stroke-linejoin: round; pointer-events: none; }
+.fit .fit-map .focus-ring { stroke-width: var(--fit-pw, 1.5px); stroke-linejoin: round; }
+.fit .fit-map .fit-pin { fill: none; stroke: var(--red); stroke-width: var(--fit-pw, 1.5px); stroke-linejoin: round; pointer-events: none; }
 /* score classes: paper to blue, the best fits blue mixed with ink */
 .fit .fit-s0 { --c: color-mix(in oklab, var(--blue) 6%, var(--paper)); }
 .fit .fit-s1 { --c: color-mix(in oklab, var(--blue) 14%, var(--paper)); }
@@ -404,8 +422,22 @@
 .fit .tt__rows dt i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 15%, transparent); }
 .fit .tt__rows dd small { color: var(--muted); font-size: 0.75rem; margin-left: 0.35rem; }
+.fit .tt__star { color: color-mix(in oklab, var(--yellow) 70%, var(--ink)); margin-left: -0.15rem; }
 
 /* ---------- Best matches ---------- */
+.fit .fit-topbox { position: relative; }
+/* "Best fits" and how many: the number field sits on the heading's line */
+.fit .fit-tophead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1rem; padding-top: 1rem; }
+.fit .fit-tophead .fit-grp { padding: 0; }
+.fit .fit-topn { display: inline-flex; align-items: center; gap: 0.55rem; height: 44px; font-family: var(--font-support); font-size: 0.875rem;
+  color: var(--muted); cursor: text; }
+.fit .fit-topn input { -webkit-appearance: none; appearance: none; -moz-appearance: textfield; width: 4.5ch; box-sizing: content-box; margin: 0;
+  padding: 0.3rem 0.4rem; border: 0; border-radius: 0; background: none; box-shadow: inset 0 -1px 0 var(--rule); font: inherit;
+  font-weight: 500; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.fit .fit-topn input::-webkit-inner-spin-button, .fit .fit-topn input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.fit .fit-topn input:hover { box-shadow: inset 0 -2px 0 var(--rule); }
+.fit .fit-topn input:focus { outline: none; box-shadow: inset 0 -3px 0 var(--ink); }
+.fit .fit-topn input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .fit .fit-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: fit; }
 .fit .fit-top li { counter-increment: fit; border-bottom: 1px solid var(--rule); }
 .fit .fit-top button { font: inherit; width: 100%; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 0.75rem; align-items: baseline;
