@@ -266,6 +266,10 @@
   background: var(--paper); color: var(--ink); border: 1px solid var(--rule); box-shadow: 0 6px 24px color-mix(in srgb, var(--ink) 14%, transparent);
   font-family: var(--font-support); font-size: 0.8125rem; line-height: 1.5; display: grid; gap: 0.45rem; }
 .fit .fit-info__pop p { margin: 0; }
+/* on a phone the explanation sits in the flow, under the question, and pushes the answers down instead of covering them */
+@container fit (max-width: 640px) {
+  .fit .fit-info__pop { position: static; width: auto; box-shadow: none; background: color-mix(in srgb, var(--rule) 18%, var(--paper)); }
+}
 .fit .fit-info__pop b { font-weight: 500; }
 .fit .fit-q:focus { outline: none; }
 .fit .fit-progress { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
@@ -394,17 +398,28 @@
 .fit .fit-outline { fill: none; stroke: var(--ink); stroke-width: var(--fit-ow, 0.9px); stroke-opacity: 0.8; stroke-linejoin: round; pointer-events: none; }
 .fit .fit-map .focus-ring { stroke-width: var(--fit-pw, 1.5px); stroke-linejoin: round; }
 .fit .fit-map .fit-pin { fill: none; stroke: var(--red); stroke-width: var(--fit-pw, 1.5px); stroke-linejoin: round; pointer-events: none; }
-/* score classes: paper to blue, the best fits blue mixed with ink */
-.fit .fit-s0 { --c: color-mix(in oklab, var(--blue) 6%, var(--paper)); }
-.fit .fit-s1 { --c: color-mix(in oklab, var(--blue) 14%, var(--paper)); }
-.fit .fit-s2 { --c: color-mix(in oklab, var(--blue) 24%, var(--paper)); }
-.fit .fit-s3 { --c: color-mix(in oklab, var(--blue) 36%, var(--paper)); }
-.fit .fit-s4 { --c: color-mix(in oklab, var(--blue) 50%, var(--paper)); }
-.fit .fit-s5 { --c: color-mix(in oklab, var(--blue) 66%, var(--paper)); }
-.fit .fit-s6 { --c: color-mix(in oklab, var(--blue) 84%, var(--paper)); }
-.fit .fit-s7 { --c: var(--blue); }
-.fit .fit-s8 { --c: color-mix(in oklab, var(--blue) 72%, var(--ink)); }
-.fit .fit-s9 { --c: color-mix(in oklab, var(--blue) 50%, var(--ink)); }
+/* the kept commune stays red on a red map: a paper casing under the red line */
+.fit .fit-map .fit-pin-halo { fill: none; stroke: var(--paper); stroke-width: calc(var(--fit-pw, 1.5px) * 2.8); stroke-linejoin: round; pointer-events: none; }
+/* score classes: paper to red, the best fits red mixed with ink; the same ramp as the maps of The Far Right in Switzerland */
+.fit .fit-s0 { --c: var(--paper); }
+.fit .fit-s1 { --c: color-mix(in oklab, var(--red) 9%, var(--paper)); }
+.fit .fit-s2 { --c: color-mix(in oklab, var(--red) 20%, var(--paper)); }
+.fit .fit-s3 { --c: color-mix(in oklab, var(--red) 33%, var(--paper)); }
+.fit .fit-s4 { --c: color-mix(in oklab, var(--red) 48%, var(--paper)); }
+.fit .fit-s5 { --c: color-mix(in oklab, var(--red) 64%, var(--paper)); }
+.fit .fit-s6 { --c: color-mix(in oklab, var(--red) 82%, var(--paper)); }
+.fit .fit-s7 { --c: var(--red); }
+.fit .fit-s8 { --c: color-mix(in oklab, var(--red) 62%, var(--ink)); }
+.fit .fit-s9 { --c: color-mix(in oklab, var(--red) 34%, var(--ink)); }
+/* dark theme: the two strongest shades lean to the yellow, so lightness keeps rising class by class
+   (mixed with the light ink they faded to pink and read as less) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fit .fit-s8 { --c: color-mix(in oklab, var(--red) 60%, var(--yellow, var(--red))); }
+  :root:not([data-theme="light"]) .fit .fit-s9 { --c: color-mix(in oklab, var(--red) 25%, var(--yellow, var(--red))); }
+}
+:root[data-theme="dark"] .fit .fit-s8 { --c: color-mix(in oklab, var(--red) 60%, var(--yellow, var(--red))); }
+:root[data-theme="dark"] .fit .fit-s9 { --c: color-mix(in oklab, var(--red) 25%, var(--yellow, var(--red))); }
+.fit .fit-town.fit-s0 { stroke: var(--rule); }
 .fit .fit-sx { --c: color-mix(in srgb, var(--rule) 70%, var(--paper)); }
 .fit .fit-ramp { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.3rem; max-width: 100%; font-family: var(--font-support);
   font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }

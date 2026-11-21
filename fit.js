@@ -120,6 +120,19 @@
     run();
     return () => { last = -1; run(); };
   }
+  // the host page's fixed or sticky header covers the top of the window: how far down it reaches (data-top-offset overrides)
+  function coveredTop() {
+    const set = Number(root.dataset.topOffset);
+    if (root.dataset.topOffset != null && Number.isFinite(set)) return set;
+    let n = document.elementFromPoint(Math.round(window.innerWidth / 2), 2), bottom = 0;
+    while (n && n !== document.body && n !== document.documentElement) {
+      if (root.contains(n)) break;
+      const pos = getComputedStyle(n).position;
+      if (pos === 'fixed' || pos === 'sticky') { bottom = Math.max(0, n.getBoundingClientRect().bottom); break; }
+      n = n.parentElement;
+    }
+    return bottom;
+  }
   function tooltip(container) {
     const tip = document.createElement('div');
     tip.className = 'tooltip';
@@ -134,7 +147,8 @@
         let left = x + 14;
         if (left + tw > cw) left = Math.max(0, x - tw - 14);
         let top = y - th - 12;
-        if (top < 0) top = y + 16;
+        // above the pointer only if it fits inside the box and below the host's header; otherwise below the pointer
+        if (top < 0 || container.getBoundingClientRect().top + top < coveredTop() + 8) top = y + 16;
         tip.style.left = left + 'px';
         tip.style.top = top + 'px';
       },
@@ -364,6 +378,14 @@
     el.addEventListener('focusin', (ev) => { if (ev.target.closest('.fit-info')) openInfo(true); });
     el.addEventListener('focusout', (ev) => { if (ev.target.closest('.fit-info') && !kept) openInfo(false); });
     el.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && pop() && !pop().hidden) { kept = false; openInfo(false); } });
+    // a tap or click outside the question closes it (taps on the page margin fire no click, so listen for pointerdown);
+    // inside the question the click handler below closes it, after the tap has found its target: on a phone the
+    // explanation sits in the flow, and closing it on pointerdown would move the answers away under the finger
+    document.addEventListener('pointerdown', (ev) => {
+      const p = pop();
+      if (!p || p.hidden || el.contains(ev.target)) return;
+      kept = false; openInfo(false);
+    }, true);
     el.addEventListener('click', (ev) => {
       const b = ev.target.closest('button');
       if (b && b.classList.contains('fit-info')) { kept = !kept || pop().hidden; openInfo(kept); return; }
@@ -498,7 +520,7 @@
     g.append('path').attr('class', 'fit-cantonlines').attr('d', path(GEO.cantonLines));
     g.append('path').attr('class', 'fit-outline').attr('d', path(GEO.outline));
     const hl = g.append('path').attr('class', 'focus-ring');
-    const pin = g.append('path').attr('class', 'fit-pin');
+    const pin = g.append('g').selectAll('path').data(['fit-pin-halo', 'fit-pin']).join('path').attr('class', (d) => d);   // casing, then the red line
     // line widths in map units, so that they grow more slowly than the zoom: commune borders, canton lines, the border of
     // Switzerland, and the outline of the hovered or kept commune (red), which stays a little wider than all of them
     const outline = (k) => {
@@ -648,7 +670,8 @@
       const t = box.querySelector('.tooltip'), r = b.getBoundingClientRect(), bx = box.getBoundingClientRect();
       const name = b.querySelector('.fit-top__name').getBoundingClientRect();
       const left = Math.min(name.right - bx.left + 24, bx.width - t.offsetWidth);
-      const top = Math.max(0, Math.min(r.top - bx.top + r.height / 2 - t.offsetHeight / 2, box.offsetHeight - t.offsetHeight));
+      const below = coveredTop() + 8 - bx.top;   // the first position (in the box) not under the host's header
+      const top = Math.max(0, below, Math.min(r.top - bx.top + r.height / 2 - t.offsetHeight / 2, box.offsetHeight - t.offsetHeight));
       t.style.left = Math.max(0, left) + 'px';
       t.style.top = top + 'px';
     };
