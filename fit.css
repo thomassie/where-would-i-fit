@@ -1,0 +1,422 @@
+/* Swiss Democracy Lab, the commune finder: styles, all scoped under .fit so they cannot touch the host page.
+   The base (layout, type, switches, tooltip, table, footer) is the same as the other pages'; colours come from the
+   host's tokens (--paper, --ink, --muted, --rule, --red, --blue, --link), so the page follows the host's light and
+   dark themes; theme.css defines them for the standalone page. Layout reacts to the width of its own container,
+   not the screen. One meaning per colour: blue = how well a commune fits the answers (the score), red = the
+   selection (the commune shown, the answer chosen, a star), grey = everything else. */
+.fit { container: fit / inline-size; position: relative; color: var(--ink); }
+/* Embedded (default): the host page provides width and side gutters. */
+.fit:not(.fit--standalone) .wrap { max-width: none; margin-inline: 0; padding-left: 0; padding-right: 0; }
+.fit:not(.fit--standalone) .masthead { padding-top: 0; }
+/* Shield from the host's global element styles (zero-specificity :where, so every rule below still wins). */
+.fit :where(h1, h2, h3, h4, p, ul, ol, li, dl, dt, dd, figure, blockquote, table, th, td, summary, label, select, button, span, b, em, small) {
+  color: inherit; font-family: inherit; letter-spacing: normal; text-transform: none; text-shadow: none; }
+.fit :where(a) { color: var(--link); text-decoration: underline; text-decoration-style: solid; }
+
+/* Layout: soft Bauhaus. An asymmetric two-column grid: a narrow rail carries each section's
+   heading and explanation, a wide field carries the chart. One column under 760px.
+   Colours come only from theme.css tokens. Type follows the main website: Helvetica/Arial for
+   headings, reading text and italic quotations; Google Sans Code for navigation and supporting
+   information (labels, axes, notes, figures in tables). */
+.fit {
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-support: "Google Sans Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --on-yellow: #2D3238;          /* text on the yellow fill, same in both themes */
+  --radius: 0;
+  --gap: clamp(1.5rem, 4vw, 3rem);
+  --step--1: 0.8125rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.3125rem;
+  --step-2: clamp(1.5rem, 3vw, 1.875rem);
+  --step-3: clamp(2.5rem, 7vw, 4.5rem);
+  --hero: clamp(4rem, 14vw, 8.5rem);
+  --max: 1160px;
+}
+.fit *, .fit *::before, .fit *::after { box-sizing: border-box; }
+.fit [hidden] { display: none !important; }
+.fit {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.fit .wrap {
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.fit h1, .fit h2, .fit h3 { font-family: var(--font-display); font-weight: 500; line-height: 1.1; margin: 0; text-wrap: balance; }
+.fit p { margin: 0; }
+.fit a { text-underline-offset: 0.18em; }
+.fit em, .fit q, .fit blockquote { font-family: var(--font-body); font-style: italic; }
+.fit blockquote { margin: 0; padding-left: 1.25rem; border-left: 3px solid var(--yellow); font-size: var(--step-1); line-height: 1.45; }
+.fit .eyebrow {
+  font-family: var(--font-support);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Title full stop: a drawn circle (Helvetica's full stop is square). Sits on the baseline. */
+/* An inline graphic, not an empty box: every engine puts its bottom edge on the text baseline. */
+.fit .title-dot { display: inline-block; width: 0.15em; height: 0.15em; margin: 0 0 0 0.06em; padding: 0; vertical-align: baseline; overflow: visible; }
+.fit .title-dot circle { fill: var(--red); }
+/* ---------- Masthead ---------- */
+.fit .masthead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--gap);
+  align-items: end;
+  padding-block: clamp(2.5rem, 7vw, 5rem) 0;
+}
+.fit .masthead__text { display: grid; gap: 1.25rem; max-width: 46rem; min-width: 0; }
+.fit .masthead h1 { font-size: var(--step-3); letter-spacing: -0.02em; }
+.fit .lede { font-size: var(--step-1); line-height: 1.45; max-width: 38rem; }
+
+/* ---------- Sections ---------- */
+.fit .block {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: var(--gap);
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  border-bottom: 1px solid var(--rule);
+}
+.fit .block__rail { display: grid; gap: 0.875rem; align-content: start; min-width: 0; }
+.fit .block__rail h2 { font-size: var(--step-2); }
+.fit .block__rail p { color: var(--muted); max-width: 26rem; }
+.fit .block__body { display: grid; gap: 1.25rem; min-width: 0; align-content: start; }
+.fit .note { font-family: var(--font-support); font-size: var(--step--1); color: var(--muted); }
+/* ---------- Charts ---------- */
+.fit .chart { position: relative; width: 100%; min-width: 0; }
+.fit .chart svg { display: block; overflow: visible; }
+.fit .chart text { font-family: var(--font-support); font-size: 11.5px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.fit .chart .grid line { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+.fit .chart .grid line.mid { stroke: var(--muted); stroke-opacity: 0.55; }
+
+.fit .chart .axis-title { font-family: var(--font-support); font-size: 12px; fill: var(--ink); }
+
+.fit .focus-ring { fill: none; stroke: var(--ink); stroke-width: 2px; pointer-events: none; }
+.fit .overlay { fill: transparent; }
+.fit .overlay:focus { outline: none; }
+.fit .overlay:focus-visible { stroke: var(--link); stroke-width: 2px; }
+.fit .tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  width: max-content;
+  max-width: min(18rem, calc(100% - 8px));
+  padding: 0.75rem 0.875rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.fit .tooltip[hidden] { display: none; }
+.fit .tt__meta { font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); }
+.fit .tt__title { font-weight: 500; margin: 0.2rem 0 0.5rem; }
+.fit .tt__rows { display: grid; gap: 0.2rem; margin: 0; }
+.fit .tt__rows div { display: flex; justify-content: space-between; gap: 1rem; }
+.fit .tt__rows dt { font-family: var(--font-support); font-size: 0.8125rem; display: flex; align-items: center; gap: 0.45rem; color: var(--muted); }
+.fit .tt__rows dd { margin: 0; font-family: var(--font-support); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+
+/* ---------- Filters & legend ---------- */
+.fit .filters { display: grid; gap: 0.5rem; }
+/* Switches ("bar index"): plain labels on a thin rule, a thick ink bar under the selected one.
+   Ink and paper only, so they never borrow the charts' colours or shapes. The rule runs the full
+   width of the column: a background repeating every 44px (the buttons' fixed height), so each
+   wrapped row on a phone gets its own full-width rule too. The bars are inset shadows, so nothing
+   shifts when the selection moves (Google Sans Code keeps its width at weight 500). */
+.fit .seg {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--rule) 43px 44px);
+}
+.fit .seg button {
+  font: inherit;
+  font-family: var(--font-support);
+  font-size: 0.875rem;
+  line-height: 1.2;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.fit .seg button:hover { color: var(--ink); box-shadow: inset 0 -4px 0 var(--rule); }
+.fit .seg button[aria-pressed="true"] { color: var(--ink); font-weight: 500; box-shadow: inset 0 -4px 0 var(--ink); }
+.fit .seg button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+@media (forced-colors: active) {
+  .fit .seg { background: none; }
+  .fit .seg button { border-bottom: 1px solid CanvasText; box-shadow: none; }
+  .fit .seg button[aria-pressed="true"] { border-bottom-width: 4px; }
+}
+.fit .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; font-family: var(--font-support); font-size: 0.875rem; }
+.fit .legend span { display: inline-flex; align-items: center; gap: 0.5rem; }
+.fit .legend .count { font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
+.fit .summary { font-family: var(--font-support); font-size: 0.875rem; color: var(--muted); }
+.fit .summary strong { color: var(--ink); font-weight: 500; }
+/* ---------- Table view ---------- */
+.fit .tableview summary { font-family: var(--font-support); font-size: 0.9375rem; cursor: pointer; color: var(--link); width: max-content; max-width: 100%; }
+.fit .tableview summary:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: 0; }
+.fit .tablewrap { overflow-x: auto; max-height: 28rem; overflow-y: auto; margin-top: 0.75rem; border: 1px solid var(--rule); border-radius: 0; }
+.fit table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+.fit th, .fit td { text-align: left; padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.fit th { position: sticky; top: 0; background: var(--paper); font-family: var(--font-support); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
+.fit td.num, .fit th.num { text-align: right; font-family: var(--font-support); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fit td.date { font-family: var(--font-support); white-space: nowrap; }
+
+/* ---------- Footer ---------- */
+.fit .foot { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: var(--gap); padding-block: clamp(2.5rem, 6vw, 4rem); }
+.fit .foot h2 { font-size: var(--step-1); }
+.fit .foot ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.5rem; color: var(--muted); max-width: 44rem; }
+.fit .glossary { padding-bottom: 0; }
+.fit .glossary dl { margin: 0; display: grid; gap: 0.35rem 0; max-width: 44rem; }
+.fit .glossary dt { font-weight: 500; color: var(--ink); margin-top: 0.85rem; }
+.fit .glossary dt:first-child { margin-top: 0; }
+.fit .glossary dd { margin: 0; color: var(--muted); }
+.fit .glossary dd ul { margin: 0.4rem 0; }
+.fit .glossary b { font-weight: 500; color: var(--ink); }
+.fit .foot .credit { font-family: var(--font-support); margin-top: 1.25rem; font-size: var(--step--1); color: var(--muted); }
+.fit .error { padding: 1rem 1.25rem; border-radius: var(--radius); border: 1px solid var(--red); }
+
+/* Hero: two figures side by side */
+.fit .hero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  border-bottom: 1px solid var(--rule);
+}
+.fit .hero__switch { grid-column: 1 / -1; display: grid; gap: 0.4rem; min-width: 0; }
+.fit .hero__pov { font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
+.fit .hero__item { display: grid; gap: 0.6rem; align-content: start; min-width: 0; }
+.fit .hero__label { font-family: var(--font-support); font-size: 0.875rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+.fit .hero__figure { font-family: var(--font-body); font-weight: 500; font-size: clamp(3.25rem, 10vw, 6.5rem); line-height: 0.9; letter-spacing: -0.03em; }
+.fit .hero__figure small { font-size: 0.45em; letter-spacing: 0; margin-left: 0.04em; }
+.fit .hero__text { font-size: var(--step-1); line-height: 1.45; max-width: 28rem; }
+/* tooltip table: region next to its country */
+.fit .tooltip { max-width: min(20rem, calc(100% - 8px)); }
+.fit .tt__tab { border-collapse: collapse; width: 100%; font-family: var(--font-support); font-size: 0.8125rem; }
+.fit .tt__tab th, .fit .tt__tab td { padding: 0.12rem 0 0.12rem 0.9rem; border: 0; text-align: right; font-weight: 400; position: static; background: none; white-space: nowrap; }
+.fit .tt__tab th:first-child { padding-left: 0; text-align: left; color: var(--muted); white-space: normal; }
+.fit .tt__tab thead th { font-size: 0.75rem; color: var(--muted); padding-bottom: 0.25rem; max-width: 7rem; overflow: hidden; text-overflow: ellipsis; }
+.fit .tt__tab td { font-variant-numeric: tabular-nums; }
+.fit .tt__tab td + td { color: var(--muted); }
+.fit .tt__tab .tt__sub th, .fit .tt__tab .tt__sub td { font-size: 0.75rem; color: var(--muted); }
+.fit .tt__note { margin-top: 0.45rem; font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); }
+@container fit (max-width: 760px) {
+  .fit .masthead { grid-template-columns: minmax(0, 1fr); }
+  .fit .block, .fit .foot { grid-template-columns: minmax(0, 1fr); }
+  .fit .seg button { padding: 0 0.6rem; }
+}
+@container fit (max-width: 520px) {
+  .fit .hero { grid-template-columns: minmax(0, 1fr); }
+}
+/* the wide region table scrolls inside its frame instead of widening the column */
+.fit .block__body > * { min-width: 0; }
+/* ---------- This page ---------- */
+.fit .fit-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.fit .fit-hatch-bg { fill: var(--paper); }
+.fit .fit-hatch-line { stroke: var(--muted); stroke-width: 1.1px; stroke-opacity: 0.4; }
+.fit .fit-key { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
+.fit .fit-key span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.fit .fit-sw { display: inline-block; width: 12px; height: 12px; flex: none; }
+.fit .fit-sw--out { background: repeating-linear-gradient(45deg, var(--paper) 0 2.5px, color-mix(in srgb, var(--muted) 55%, var(--paper)) 2.5px 3.7px); box-shadow: inset 0 0 0 1px var(--rule); }
+.fit .fit-sw--none { background: color-mix(in srgb, var(--rule) 70%, var(--paper)); }
+
+/* Buttons that act (start, next, back): text on the rule, like the switches; the main one in ink. */
+.fit .fit-act { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.25rem; }
+.fit .fit-btn { font: inherit; font-family: var(--font-support); font-size: 0.9375rem; line-height: 1.2; color: var(--ink); background: transparent;
+  border: 0; border-radius: 0; margin: 0; height: 44px; padding: 0 0.25rem; cursor: pointer; box-shadow: inset 0 -1px 0 var(--rule);
+  -webkit-tap-highlight-color: transparent; }
+.fit .fit-btn:hover { box-shadow: inset 0 -4px 0 var(--rule); }
+.fit .fit-btn:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fit .fit-btn--main { font-weight: 500; box-shadow: inset 0 -4px 0 var(--ink); padding: 0 0.5rem; }
+.fit .fit-btn--main:hover { box-shadow: inset 0 -6px 0 var(--ink); }
+.fit .fit-btn[disabled] { color: var(--muted); cursor: default; box-shadow: inset 0 -1px 0 var(--rule); }
+.fit .fit-link { font: inherit; font-family: var(--font-support); font-size: 0.875rem; color: var(--link); background: none; border: 0; padding: 0;
+  margin: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.18em; }
+.fit .fit-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* ---------- The questions: one at a time ---------- */
+.fit .fit-q { display: grid; gap: 1.1rem; align-content: start; min-height: 22rem; }
+.fit .fit-q:focus { outline: none; }
+.fit .fit-progress { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
+.fit .fit-progress__bar { flex: 1 1 auto; height: 2px; background: var(--rule); position: relative; max-width: 22rem; }
+.fit .fit-progress__bar i { position: absolute; left: 0; top: -1px; height: 4px; background: var(--ink); }
+.fit .fit-q h2 { font-size: var(--step-2); }
+.fit .fit-q__text { font-size: var(--step-1); line-height: 1.4; max-width: 38rem; }
+.fit .fit-q__def { font-family: var(--font-support); font-size: var(--step--1); color: var(--muted); max-width: 40rem; }
+/* The five answers: a scale from one end to the other, "doesn't matter" in the middle. */
+.fit .fit-opts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0 2px;
+  background: repeating-linear-gradient(to bottom, transparent 0 calc(100% - 1px), var(--rule) calc(100% - 1px) 100%); }
+.fit .fit-opt { font: inherit; font-family: var(--font-support); font-size: 0.875rem; line-height: 1.25; color: var(--muted); background: transparent;
+  border: 0; border-radius: 0; margin: 0; min-height: 64px; padding: 0.5rem 0.4rem 0.9rem; cursor: pointer; display: grid; gap: 0.3rem;
+  align-content: end; justify-items: center; text-align: center; -webkit-tap-highlight-color: transparent; }
+.fit .fit-opt b { font-weight: 500; letter-spacing: 0.04em; color: var(--ink); font-size: 0.8125rem; }
+.fit .fit-opt:hover { color: var(--ink); box-shadow: inset 0 -4px 0 var(--rule); }
+.fit .fit-opt[aria-pressed="true"] { color: var(--ink); font-weight: 500; box-shadow: inset 0 -4px 0 var(--ink); }
+.fit .fit-opt:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.fit .fit-opts--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fit .fit-langs { display: flex; flex-wrap: wrap; gap: 0 1.5rem; }
+.fit .fit-check { display: inline-flex; align-items: center; gap: 0.55rem; height: 44px; font-family: var(--font-support); font-size: 0.9375rem; cursor: pointer; }
+.fit .fit-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); }
+.fit .fit-household { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+@container fit (max-width: 640px) {
+  .fit .fit-opts { grid-template-columns: minmax(0, 1fr); gap: 0; background: none; }
+  .fit .fit-opt { min-height: 44px; padding: 0.55rem 0.25rem; justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start;
+    align-items: center; box-shadow: inset 0 -1px 0 var(--rule); }
+  .fit .fit-opt[aria-pressed="true"] { box-shadow: inset 4px 0 0 var(--ink), inset 0 -1px 0 var(--rule); padding-left: 0.75rem; }
+  .fit .fit-opt b { min-width: 1.6rem; }
+}
+
+/* ---------- Your answers: one row per question ---------- */
+.fit .fit-answers { display: grid; gap: 0; }
+.fit .fit-grp { font-family: var(--font-support); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  padding: 1rem 0 0.25rem; }
+.fit .fit-grp:first-child { padding-top: 0; }
+.fit .fit-row { display: grid; grid-template-columns: minmax(8.5rem, 3fr) minmax(0, 6fr) 44px; gap: 0.25rem 1rem; align-items: center;
+  border-bottom: 1px solid var(--rule); padding: 0.2rem 0; }
+.fit .fit-row__label { font-size: 0.9375rem; line-height: 1.25; min-width: 0; }
+.fit .fit-row__label small { display: block; font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+.fit .fit-row.is-off .fit-row__label { color: var(--muted); }
+.fit .fit-row__extra { grid-column: 1 / -1; padding-bottom: 0.4rem; }
+/* the answer as a slider: five stops, "doesn't matter" in the middle, a red dot as the handle (red = the selection) */
+.fit .fit-slider { position: relative; min-width: 0; padding-bottom: 1.2rem; }
+.fit .fit-slider input[type="range"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 32px; margin: 0;
+  padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.fit .fit-slider input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--rule); border: 0; }
+.fit .fit-slider input[type="range"]::-moz-range-track { height: 2px; background: var(--rule); border: 0; }
+.fit .fit-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px;
+  margin-top: -6px; background: var(--red); border: 0; border-radius: 50%; }
+.fit .fit-slider input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; background: var(--red); border: 0; border-radius: 50%; }
+.fit .fit-row.is-off .fit-slider input[type="range"]::-webkit-slider-thumb { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--muted); }
+.fit .fit-row.is-off .fit-slider input[type="range"]::-moz-range-thumb { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--muted); }
+.fit .fit-slider input[type="range"]:focus { outline: none; }
+.fit .fit-slider:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 2px; }
+.fit .fit-slider__ticks { position: absolute; left: 7px; right: 7px; top: 15px; height: 5px; pointer-events: none; }
+.fit .fit-slider__ticks i { position: absolute; top: 0; width: 1px; height: 5px; background: var(--muted); transform: translateX(-50%); }
+.fit .fit-slider__ends { position: absolute; left: 0; right: 0; top: 23px; display: flex; justify-content: space-between; gap: 0.5rem;
+  font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); pointer-events: none; }
+.fit .fit-slider__ends span:nth-child(2) { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.fit .fit-slider__ends span.is-on { color: var(--ink); font-weight: 500; }
+@container fit (max-width: 520px) { .fit .fit-slider__ends span:nth-child(2) { display: none; } }
+/* the star: counts the question double */
+.fit .fit-star { width: 44px; height: 44px; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; display: grid; place-items: center;
+  color: var(--muted); -webkit-tap-highlight-color: transparent; }
+.fit .fit-star svg { width: 20px; height: 20px; }
+.fit .fit-star path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.fit .fit-star[aria-pressed="true"] { color: var(--red); }
+.fit .fit-star[aria-pressed="true"] path { fill: var(--red); }
+.fit .fit-star:hover { color: var(--ink); }
+.fit .fit-star:focus-visible { outline: 2px solid var(--link); outline-offset: -4px; }
+.fit .fit-star[disabled] { opacity: 0.35; cursor: default; }
+@container fit (max-width: 520px) {
+  .fit .fit-row { grid-template-columns: minmax(0, 1fr) 44px; }
+  .fit .fit-row__label { grid-column: 1 / 2; }
+  .fit .fit-row .fit-star { grid-column: 2; grid-row: 1; }
+  .fit .fit-row .fit-slider { grid-column: 1 / -1; }
+}
+
+/* ---------- Map ---------- */
+.fit .fit-tools { display: flex; flex-wrap: wrap; align-items: stretch; column-gap: 1.5rem;
+  background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--rule) 43px 44px); }
+.fit .fit-find, .fit .fit-pick { position: relative; display: flex; align-items: center; gap: 0.55rem; height: 44px; min-width: 0;
+  font-family: var(--font-support); font-size: 0.875rem; color: var(--muted); }
+.fit .fit-find { flex: 0 1 21rem; cursor: text; }
+.fit .fit-pick { cursor: pointer; }
+.fit .fit-find:focus-within, .fit .fit-pick:focus-within { color: var(--ink); box-shadow: inset 0 -4px 0 var(--ink); }
+.fit .fit-find > span, .fit .fit-pick > span { white-space: nowrap; }
+.fit .fit-mag { width: 15px; height: 15px; flex: none; }
+.fit .fit-mag circle, .fit .fit-mag line { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.fit .fit-find input { -webkit-appearance: none; appearance: none; border: 0; border-radius: 0; background: none; margin: 0; padding: 0;
+  font: inherit; font-family: var(--font-body); font-size: 0.9375rem; color: var(--ink); width: 100%; min-width: 5rem; height: 100%; outline: 0; }
+.fit .fit-find input::placeholder { color: var(--muted); opacity: 0.8; }
+.fit .fit-find input::-webkit-search-decoration, .fit .fit-find input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.fit .fit-find input::-webkit-calendar-picker-indicator { display: none !important; }
+.fit .fit-pick select { -webkit-appearance: none; appearance: none; border: 0; border-radius: 0; background: none; margin: 0;
+  font: inherit; font-family: var(--font-support); font-size: 0.875rem; font-weight: 500; color: var(--ink);
+  height: 100%; max-width: 100%; padding: 0 1.4rem 0 0; cursor: pointer; outline: 0; }
+.fit .fit-pick::after { content: ""; position: absolute; right: 0.2rem; top: 50%; width: 6px; height: 6px; margin-top: -5px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); pointer-events: none; }
+.fit .fit-zoom { display: flex; margin-left: auto; }
+.fit .fit-zoom button { font: inherit; font-family: var(--font-support); font-size: 0.875rem; color: var(--muted); background: none;
+  border: 0; border-radius: 0; margin: 0; height: 44px; min-width: 44px; padding: 0 0.875rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.fit .fit-zoom button:hover { color: var(--ink); box-shadow: inset 0 -4px 0 var(--rule); }
+.fit .fit-zoom button:active { color: var(--ink); box-shadow: inset 0 -4px 0 var(--ink); }
+.fit .fit-zoom button:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.fit .fit-zsep { width: 1px; background: var(--rule); margin: 12px 0 13px; }
+@container fit (max-width: 520px) { .fit .fit-find { flex: 1 1 100%; } .fit .fit-zoom { margin-left: 0; } }
+@media (forced-colors: active) {
+  .fit .fit-tools, .fit .fit-opts { background: none; }
+  .fit .fit-find, .fit .fit-pick, .fit .fit-opt { border-bottom: 1px solid CanvasText; }
+  .fit .fit-opt[aria-pressed="true"] { border-bottom-width: 4px; }
+}
+.fit .fit-map svg { touch-action: pan-y; cursor: default; overflow: hidden; display: block; }
+.fit .fit-map svg path { fill-rule: evenodd; }
+.fit .fit-town { fill: var(--c); stroke: var(--paper); stroke-width: 0.3px; stroke-linejoin: round; }
+.fit .fit-town.is-out { fill: url(#fit-hatch); }
+.fit .fit-lake { fill: color-mix(in srgb, var(--blue) 14%, var(--paper)); stroke: none; pointer-events: none; }
+.fit .fit-cantonlines { fill: none; stroke: var(--ink); stroke-width: 0.7px; stroke-opacity: 0.5; stroke-linejoin: round; pointer-events: none; }
+.fit .fit-outline { fill: none; stroke: var(--ink); stroke-width: 0.9px; stroke-opacity: 0.8; stroke-linejoin: round; pointer-events: none; }
+.fit .fit-map .focus-ring { stroke-width: 1.75px; stroke-linejoin: round; }
+.fit .fit-map .fit-pin { fill: none; stroke: var(--red); stroke-width: 2px; stroke-linejoin: round; pointer-events: none; }
+/* score classes: paper to blue, the best fits blue mixed with ink */
+.fit .fit-s0 { --c: color-mix(in oklab, var(--blue) 6%, var(--paper)); }
+.fit .fit-s1 { --c: color-mix(in oklab, var(--blue) 14%, var(--paper)); }
+.fit .fit-s2 { --c: color-mix(in oklab, var(--blue) 24%, var(--paper)); }
+.fit .fit-s3 { --c: color-mix(in oklab, var(--blue) 36%, var(--paper)); }
+.fit .fit-s4 { --c: color-mix(in oklab, var(--blue) 50%, var(--paper)); }
+.fit .fit-s5 { --c: color-mix(in oklab, var(--blue) 66%, var(--paper)); }
+.fit .fit-s6 { --c: color-mix(in oklab, var(--blue) 84%, var(--paper)); }
+.fit .fit-s7 { --c: var(--blue); }
+.fit .fit-s8 { --c: color-mix(in oklab, var(--blue) 72%, var(--ink)); }
+.fit .fit-s9 { --c: color-mix(in oklab, var(--blue) 50%, var(--ink)); }
+.fit .fit-sx { --c: color-mix(in srgb, var(--rule) 70%, var(--paper)); }
+.fit .fit-ramp { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.3rem; max-width: 100%; font-family: var(--font-support);
+  font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* the ten swatches stay on one line: they shrink on a phone rather than wrap */
+.fit .fit-ramp i { display: inline-block; flex: 0 1 22px; min-width: 8px; height: 12px; background: var(--c); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent); }
+.fit .fit-ramp__end { white-space: nowrap; flex: none; }
+.fit .fit-ramp__end { margin: 0 0.2rem; }
+.fit .fit-map__msg { position: absolute; left: 0; right: 0; top: 38%; margin-inline: auto; max-width: 24rem; padding: 0.75rem 1rem;
+  background: var(--paper); border: 1px solid var(--rule); font-family: var(--font-support); font-size: 0.875rem; text-align: center; }
+/* tooltip: the score, then the answered features */
+.fit .tooltip { max-width: min(22rem, calc(100% - 8px)); }
+.fit .tt__score { display: flex; align-items: baseline; gap: 0.5rem; margin: 0.1rem 0 0.55rem; }
+.fit .tt__score b { font-family: var(--font-body); font-size: 1.75rem; font-weight: 500; line-height: 1; }
+.fit .tt__score span { font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); }
+.fit .tt__rows dt i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 15%, transparent); }
+.fit .tt__rows dd small { color: var(--muted); font-size: 0.75rem; margin-left: 0.35rem; }
+
+/* ---------- Best matches ---------- */
+.fit .fit-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: fit; }
+.fit .fit-top li { counter-increment: fit; border-bottom: 1px solid var(--rule); }
+.fit .fit-top button { font: inherit; width: 100%; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 0.75rem; align-items: baseline;
+  padding: 0.6rem 0; background: none; border: 0; text-align: left; color: var(--ink); cursor: pointer; }
+.fit .fit-top button::before { content: counter(fit); font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
+.fit .fit-top button:hover .fit-top__name { text-decoration: underline; text-underline-offset: 0.18em; }
+.fit .fit-top button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fit .fit-top__name small { font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); margin-left: 0.4rem; }
+.fit .fit-top__score { font-family: var(--font-support); font-variant-numeric: tabular-nums; }
+.fit .fit-filters { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; }
+
+/* the method list keeps its own bullets whatever the host does to lists */
+.fit .foot ul { list-style: disc; }
+.fit .foot li::marker { color: var(--muted); }
