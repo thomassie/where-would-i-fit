@@ -97,6 +97,11 @@
   const $ = (sel) => root.querySelector(sel.replace(/#([\w-]+)/g, '#fit-$1'));
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = d3.format(',');
+  // the commune's own website (confirmed by the site itself), shown by its host name
+  const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; } };
+  const webLink = (c, cls, label) => (c.u && /^https?:\/\//.test(c.u)
+    ? '<a class="' + cls + '" href="' + esc(c.u) + '" target="_blank" rel="noopener" aria-label="Website of ' + esc(c.n) + ' (opens in a new tab)">' +
+      esc(label || hostOf(c.u)) + '&nbsp;↗</a>' : '');
   const CANTONS = ['', 'Zürich', 'Bern', 'Luzern', 'Uri', 'Schwyz', 'Obwalden', 'Nidwalden', 'Glarus', 'Zug', 'Fribourg', 'Solothurn',
     'Basel-Stadt', 'Basel-Landschaft', 'Schaffhausen', 'Appenzell Ausserrhoden', 'Appenzell Innerrhoden', 'St. Gallen', 'Graubünden',
     'Aargau', 'Thurgau', 'Ticino', 'Vaud', 'Valais', 'Neuchâtel', 'Genève', 'Jura'];
@@ -482,7 +487,8 @@
     const c = C[ci];
     const head = '<p class="tt__meta">' + esc(CANTONS[ABBR.indexOf(c.k)] || c.k) + ' · ' + (LANGS.find(([l]) => l === c.l) || [0, ''])[1] + '-speaking · ' + num(c.r) + ' residents</p>' +
       '<p class="tt__title">' + esc(c.n) + '</p>';
-    if (!shown(c)) return head + '<p class="tt__note">Outside the regions and cantons you chose.</p>';
+    const web = c.u ? '<p class="tt__web">' + webLink(c, '') + '</p>' : '';
+    if (!shown(c)) return head + '<p class="tt__note">Outside the regions and cantons you chose.</p>' + web;
     // most important answers first; among equally weighted ones, where this commune fits best first
     const fitOf = (i) => { const p = pctOf(ci, i); return p == null ? -1 : S.a[i] > 0 ? p : 1 - p; };
     const on = F.map((_, i) => i).filter((i) => weight(i)).sort((a, b) => weight(b) - weight(a) || fitOf(b) - fitOf(a) || a - b);
@@ -502,7 +508,7 @@
     if (on.includes(TAX) && c.tm) notes.push('Tax: this commune was formed by a merger after 2018; the figure averages the communes it was made of.');
     if (on.length > 12) notes.push(on.length - 12 + ' more answers count in the score.');
     if (!on.length) notes.push('Answer a question to see a score.');
-    return head + (on.length ? score : '') + '<dl class="tt__rows">' + rows + '</dl>' + (notes.length ? '<p class="tt__note">' + notes.join(' ') + '</p>' : '');
+    return head + (on.length ? score : '') + '<dl class="tt__rows">' + rows + '</dl>' + (notes.length ? '<p class="tt__note">' + notes.join(' ') + '</p>' : '') + web;
   }
   function drawMap(el) {
     const W = Math.round(el.clientWidth);
@@ -538,13 +544,16 @@
       hl.attr('d', path(f)).attr('visibility', 'visible');
       const [px, py] = d3.pointer(ev, el);
       tip.show(tipHtml(ci), px, py);
+      keepTip();
     };
     const hide = () => { tip.hide(); hl.attr('visibility', 'hidden'); };
     let pinned = null;
+    // a kept commune's tooltip takes pointer events, so the link to its website can be opened
+    const keepTip = () => { const t = el.querySelector('.tooltip'); if (t) t.classList.toggle('is-kept', !!pinned); };
     shapes.on('pointermove', (ev, f) => { if (!pinned && ev.pointerType === 'mouse') show(ev, f); })
       .on('click', (ev, f) => { if (pinned === f) { pinned = null; hide(); pin.attr('d', null); } else { pinned = f; show(ev, f); pin.attr('d', path(f)); } });
     svg.on('pointerleave', () => { if (!pinned) hide(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) { pinned = null; hide(); pin.attr('d', null); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && pinned) { pinned = null; hide(); pin.attr('d', null); keepTip(); } });
     const zoom = d3.zoom().scaleExtent([1, 32]).translateExtent([[0, 0], [W, H]])
       .filter((ev) => (ev.type === 'wheel' ? ev.ctrlKey || ev.metaKey : ev.type === 'touchstart' ? ev.touches.length > 1 : !ev.button))
       .on('zoom', (ev) => { g.attr('transform', ev.transform); outline(ev.transform.k); tip.hide(); });
@@ -559,6 +568,7 @@
         hl.attr('d', path(f)).attr('visibility', 'visible');
         const p = t.apply(path.centroid(f));
         tip.show(tipHtml(BYID.get(f.id)), p[0], p[1]);
+        keepTip();
       });
     };
     M.view = { zoom, svg, zoomTo, refreshTip: () => { if (pinned) { const ci = BYID.get(pinned.id); tip.show(tipHtml(ci), parseFloat(el._tip && el.querySelector('.tooltip').style.left) || 0, 0); } } };
@@ -595,14 +605,14 @@
     const reach = S.min ? order.filter((ci) => SC[ci] >= S.min) : order;
     TOP = reach.slice(0, S.top);
     $('#top').innerHTML = TOP.length ? TOP.map((ci) => '<li><button type="button" data-id="' + C[ci].id + '"><span class="fit-top__name">' + esc(C[ci].n) + '<small>' + C[ci].k +
-      '</small></span><span class="fit-top__score">' + Math.round(SC[ci]) + '</span></button></li>').join('')
+      '</small></span><span class="fit-top__score">' + Math.round(SC[ci]) + '</span></button>' + webLink(C[ci], 'fit-top__web', 'Website') + '</li>').join('')
       : '<li class="note">' + (S.min && order.length ? 'No commune reaches ' + S.min + '. Lower the minimum score to see the best fits.' : 'No scores yet.') + '</li>';
     const sel = [...S.langs].length < 4 || S.canton ? ' among the communes you chose' : '';
     const w = F.map((_, i) => i).filter((i) => weight(i));
     $('#map-text').textContent = (TOP.length ? 'Best fit' + sel + ': ' + C[TOP[0]].n + ' (' + C[TOP[0]].k + '), with ' + Math.round(SC[TOP[0]]) + ' of 100, from ' +
       w.length + (w.length === 1 ? ' answer.' : ' answers.') : '') +
       (S.min && order.length ? ' ' + (reach.length === 1 ? 'One commune scores ' : num(reach.length) + ' communes score ') + S.min + ' or more.' : '');
-    $('#map-note').textContent = num(NSHOWN) + ' of ' + num(C.length) + ' communes in your choice of regions and cantons. Zoom with the buttons, by pinching, or with Ctrl or ⌘ and the scroll wheel; tap or click a commune to keep its values.';
+    $('#map-note').textContent = num(NSHOWN) + ' of ' + num(C.length) + ' communes in your choice of regions and cantons. Zoom with the buttons, by pinching, or with Ctrl or ⌘ and the scroll wheel; tap or click a commune to keep its values and open its website.';
   }
 
   // ---------- everything after a change ----------
@@ -700,6 +710,7 @@
       'So the score compares communes with each other, not with what you wished for: 100 would mean a commune ranks first on every one of your answers, and a commune in the middle on all of them gets 50. With a single answer, the score is the commune&rsquo;s rank on that one feature.',
       'The map shows the scores in ten shades, each holding a tenth of the communes shown (communes with the same score share a shade). So the map always runs through all ten shades, whether your answers leave a few communes clearly ahead or many close together; the score in the tooltip tells which.',
       'A minimum score leaves the communes below it pale on the map and out of the best fits; their scores stay in the tooltip. The list of best fits shows the top 10 unless you ask for more (up to 200).',
+      'Links to the communes&rsquo; websites: Wikidata gives each commune&rsquo;s official website; a link is shown only if the site itself confirms it (it loads, reads like a commune administration and names the commune). Checked once a month; a commune without a confirmed site shows no link.',
       'Every commune counts once, whatever its size. A commune with no value for half or more of what you weighted gets no score; the very smallest communes can have extreme values because a few people decide them.',
       'Values describe a commune as a whole. Distances, elevation, sunshine, noise and public transport are averages over the commune&rsquo;s residents: each inhabited hectare counts with the people who live there. They say nothing about a particular street, and nothing about any one person.',
       'Communes are today&rsquo;s (' + esc(SUMMARY.boundaries_state || '') + '). Figures from earlier commune states are added up onto today&rsquo;s communes. Tax burdens come from 2018, the latest year the Federal Tax Administration published for every commune; communes merged since then get the average of the communes they were made of, weighted by residents.',

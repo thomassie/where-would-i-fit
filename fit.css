@@ -456,7 +456,18 @@
 .fit .fit-topn input:focus { outline: none; box-shadow: inset 0 -3px 0 var(--ink); }
 .fit .fit-topn input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .fit .fit-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: fit; }
-.fit .fit-top li { counter-increment: fit; border-bottom: 1px solid var(--rule); }
+.fit .fit-top li { counter-increment: fit; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; column-gap: 1.25rem; }
+/* the commune's website beside its row: a plain link, outside the row's button */
+.fit .fit-top__web { font-family: var(--font-support); font-size: 0.8125rem; color: var(--link); text-decoration: underline;
+  text-underline-offset: 0.18em; padding: 0.6rem 0; white-space: nowrap; }
+.fit .fit-top__web:hover { text-decoration-thickness: 2px; }
+.fit .fit-top__web:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fit .fit-top li.note { display: block; }
+/* the tooltip's link: readable in the hover tooltip, clickable once the commune is kept */
+.fit .tt__web { margin: 0.55rem 0 0; font-family: var(--font-support); font-size: 0.8125rem; }
+.fit .tt__web a { color: var(--link); text-decoration: underline; text-underline-offset: 0.15em; overflow-wrap: anywhere; }
+.fit .tooltip.is-kept { pointer-events: auto; }
 .fit .fit-top button { font: inherit; width: 100%; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 0.75rem; align-items: baseline;
   padding: 0.6rem 0; background: none; border: 0; text-align: left; color: var(--ink); cursor: pointer; }
 .fit .fit-top button::before { content: counter(fit); font-family: var(--font-support); font-size: 0.8125rem; color: var(--muted); }
