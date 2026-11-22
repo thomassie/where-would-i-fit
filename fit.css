@@ -306,8 +306,10 @@
 .fit .fit-grp { font-family: var(--font-support); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
   padding: 1rem 0 0.25rem; }
 .fit .fit-grp:first-child { padding-top: 0; }
+/* the answers: no lines between the answers of a group, one line between groups (above every group but the first) */
+.fit .fit-answers > .fit-grp:not(:first-child) { border-top: 1px solid var(--rule); margin-top: 0.75rem; padding-top: 1.25rem; }
 .fit .fit-row { display: grid; grid-template-columns: minmax(8.5rem, 3fr) minmax(0, 6fr) 44px; gap: 0.25rem 1rem; align-items: center;
-  border-bottom: 1px solid var(--rule); padding: 0.2rem 0; }
+  padding: 0.2rem 0; }
 .fit .fit-row__label { font-size: 0.9375rem; line-height: 1.25; min-width: 0; }
 .fit .fit-row__label small { display: block; font-family: var(--font-support); font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
 .fit .fit-row.is-off .fit-row__label { color: var(--muted); }
