@@ -85,7 +85,7 @@
   </section>
 </div>
 <footer class="wrap foot">
-  <h2>How the score works</h2>
+  <h2>How the score works${DOT}</h2>
   <div>
     <ul id="fit-method"></ul>
     <p class="credit" id="fit-credit"></p>
